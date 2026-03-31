@@ -282,8 +282,8 @@ async def send_start(client: Client, message: Message):
         pass
 
     apis = [
-        "https://api.waifu.pics/sfw/waifu",
-        "https://nekos.life/api/v2/img/waifu",
+        "https://api.nekosapi.com/v3/images/random",
+        "https://api.waifu.im/search?included_tags=waifu",
     ]
     api_url = random.choice(apis)
 
@@ -721,8 +721,8 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
     elif data == "start_btn":
         bot = await client.get_me()
         apis = [
-            "https://api.waifu.pics/sfw/waifu",
-            "https://nekos.life/api/v2/img/waifu",
+            "https://api.nekosapi.com/v3/images/random",
+            "https://api.waifu.im/search?included_tags=waifu",
         ]
         api_url = random.choice(apis)
 
