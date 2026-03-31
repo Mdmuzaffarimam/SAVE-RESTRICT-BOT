@@ -84,7 +84,7 @@ class script(object):
 
     ABOUT_TXT = """<b>ℹ️ About This Bot</b>
 <blockquote><b>╭────[ 🧩 Technical Stack ]────⍟</b>
-<b>├⍟ 🤖 Bot Name : <a href="https://t.me/Save_Restricted_Content_XRBOT">Save Content</a></b>
+<b>├⍟ 🤖 Bot Name : <a href="https://t.me/Save_Restricted_Content_XRBOT">Save Restricted Content</a></b>
 <b>├⍟ 👨‍💻 Developer : <a href="https://t.me/Dark_of_Danger">𝄟͢🦋⃟≛⃝ 𝐃𝐚𝐫𝐤 𝐨𝐟 𝐃𝐚𝐧𝐠𝐞𝐫 𝄟⃝❤</a></b>
 <b>├⍟ 📚 Library : <a href="https://docs.pyrogram.org/">Pyrogram Async</a></b>
 <b>├⍟ 🐍 Language : <a href="https://www.python.org/">Python 3.11+</a></b>
@@ -145,7 +145,7 @@ Download files up to 4GB and beyond with no limits!
 def get_premium_text():
     return script.PREMIUM_TEXT.format(
         upi_id=UPI_ID if UPI_ID else "Mrn-Officialx@axl",
-        qr_code=QR_CODE if QR_CODE else "http://telegraph.controller.bot/files/6630683090/AgACAgUAAyEFAASAsArgAAI6OWlY44wCc628_-VB5pyXa2eoBb46AAIODGsbcn7BVpErk_QnTevIAQADAgADeQADOAQ",
+        qr_code=QR_CODE if QR_CODE else "https://files.catbox.moe/1ulopu.jpg",
     )
 
 
@@ -293,7 +293,7 @@ async def send_start(client: Client, message: Message):
         photo_url = response.json()["url"]
     except Exception as e:
         logger.error(f"Failed to fetch image from API: {e}")
-        photo_url = "https://i.postimg.cc/kX9tjGXP/16.png"
+        photo_url = "https://i.postimg.cc/kX9tjGXP/16.png https://i.postimg.cc/cC7txyhz/15.png"
 
     buttons = [
         [
@@ -732,7 +732,7 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
             photo_url = response.json()["url"]
         except Exception as e:
             logger.error(f"Failed to fetch image from API: {e}")
-            photo_url = "https://i.postimg.cc/cC7txyhz/15.png"
+            photo_url = "https://i.postimg.cc/kX9tjGXP/16.png https://i.postimg.cc/cC7txyhz/15.png"
 
         buttons = [
             [
