@@ -22,8 +22,8 @@ logger = LOGGER(__name__)
 SUBSCRIPTION = os.environ.get('SUBSCRIPTION', 'https://graph.org/file/242b7f1b52743938d81f1.jpg')
 FREE_LIMIT_SIZE = 2 * 1024 * 1024 * 1024
 FREE_LIMIT_DAILY = 10
-UPI_ID = os.environ.get("UPI_ID", "")
-QR_CODE = os.environ.get("QR_CODE", "")
+UPI_ID = os.environ.get("UPI_ID", "your_upi@oksbi")
+QR_CODE = os.environ.get("QR_CODE", "https://graph.org/file/242b7f1b52743938d81f1.jpg")
 REACTIONS = [
     "👍", "❤️", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱", "🤬",
     "😢", "🎉", "🤩", "🤮", "💩", "🙏", "👌", "🕊", "🤡", "🥱",
@@ -36,10 +36,10 @@ REACTIONS = [
 ]
 
 
-dev_text = "👨‍💻 Mind Behind This Bot:\n• @Dark_of_Danger\n• @Mrn_Officialx"
-expected_dev_hash = "19f328303d3737842a46fb72b98c9b73ef0b2d8326f2a3b4acb0246d85e2a101"
-channels_text = "📢 Official Channels:\n• @Dark_of_Danger\n• @Mrn_Officialx\n\nStay updated for new features!"
-expected_channels_hash = "e3398cc85c68b09ba3940717921f2f505f796d3da6168e1620a7880069b4adc5"
+dev_text = "👨‍💻 Mind Behind This Bot:\n• @DmOwner\n• @akaza7902"
+expected_dev_hash = "b9e63b7578bdec13f3cb3162fe5f5e93dccaba3bfd5c8ddacbb90ffdcdcce402"
+channels_text = "📢 Official Channels:\n• @ReX_update\n• @THEUPDATEDGUYS\n\nStay updated for new features!"
+expected_channels_hash = "e19212e571bd0f6626450dd790029d392c0748c554d4b386a0c0752f4148d37d"
 
 if (
     hashlib.sha256(dev_text.encode('utf-8')).hexdigest() != expected_dev_hash or
@@ -49,13 +49,14 @@ if (
 
 class script(object):
    
-    START_TXT = """<blockquote><b>👋 Hello {},✨ 🤖 I am <a href=https://t.me/{}>{}</a></b></blockquote>
-<blockquote><i>Your Professional Restricted Content Saver Bot.</i></blockquote>
-<blockquote><b>🚀 System Status: 🟢 Online</b></blockquote>
-<blockquote><b>⚡ Performance: 10x High-Speed Processing</b></blockquote>
-<blockquote><b>🔐 Security: End-to-End Encrypted</b></blockquote>
-<blockquote><b>📊 Uptime: 99.9% Guaranteed</b></blockquote>
-<blockquote><b>👇 Select an Option Below to Get Started:</b></blockquote>
+    START_TXT = """<b>👋 Hello {},</b>
+<b>🤖 I am <a href=https://t.me/{}>{}</a></b>
+<i>Your Professional Restricted Content Saver Bot.</i>
+<blockquote><b>🚀 System Status: 🟢 Online</b>
+<b>⚡ Performance: 10x High-Speed Processing</b>
+<b>🔐 Security: End-to-End Encrypted</b>
+<b>📊 Uptime: 99.9% Guaranteed</b></blockquote>
+<b>👇 Select an Option Below to Get Started:</b>
 """
     HELP_TXT = """<b>📚 Comprehensive Help & User Guide</b>
 <blockquote><b>1️⃣ Public Channels (No Login Required)</b></blockquote>
@@ -78,8 +79,8 @@ class script(object):
 """
     ABOUT_TXT = """<b>ℹ️ About This Bot</b>
 <blockquote><b>╭────[ 🧩 Technical Stack ]────⍟</b>
-<b>├⍟ 🤖 Bot Name : <a href=https://t.me/Save_Restricted_Content_XRBOT>Save Content</a></b>
-<b>├⍟ 👨‍💻 Developer : <a href=https://t.me/Dark_of_Danger>Ⓜ️ark X cantarella</a></b>
+<b>├⍟ 🤖 Bot Name : <a href=http://t.me/THEUPDATEDGUYS_Bot>Save Content</a></b>
+<b>├⍟ 👨‍💻 Developer : <a href=https://t.me/DmOwner>Ⓜ️ark X cantarella</a></b>
 <b>├⍟ 📚 Library : <a href='https://docs.pyrogram.org/'>Pyrogram Async</a></b>
 <b>├⍟ 🐍 Language : <a href='https://www.python.org/'>Python 3.11+</a></b>
 <b>├⍟ 🗄 Database : <a href='https://www.mongodb.com/'>MongoDB Atlas Cluster</a></b>
@@ -100,8 +101,8 @@ class script(object):
 • <b>3 Month Plan:</b> ₹120 / $2.5 (Save 20%)
 • <b>Lifetime Access:</b> ₹200 / $4 (One-Time Payment)
 <blockquote><b>👇 Secure Payment:</b></blockquote>
-<b>💸 UPI ID:</b> <code>{Mrn-Officialx@axl}</code>
-<b>📸 QR Code:</b> <a href='{}'>http://telegraph.controller.bot/files/6630683090/AgACAgUAAyEFAASAsArgAAI6OWlY44wCc628_-VB5pyXa2eoBb46AAIODGsbcn7BVpErk_QnTevIAQADAgADeQADOAQ</a>
+<b>💸 UPI ID:</b> <code>{}</code>
+<b>📸 QR Code:</b> <a href='{}'>Scan to Pay</a>
 <i>After Payment: Send Screenshot to Admin for Instant Activation.</i>
 """
     PROGRESS_BAR = """\
@@ -114,7 +115,7 @@ class script(object):
 <b>⏳ ETA:</b> <code>{eta}</code>
 </blockquote>
 """
-    CAPTION = """<b></b>"""
+    CAPTION = """<b><a href="https://t.me/THEUPDATEDGUYS"></a></b>\n\n<b>⚜️ Powered By : <a href="https://t.me/THEUPDATEDGUYS">THE UPDATED GUYS 😎</a></b>"""
     LIMIT_REACHED = """<b>🚫 Daily Limit Exceeded</b>
 <b>Your 10 free saves for today have been used.</b>
 <i>Quota resets automatically after 24 hours from first download.</i>
@@ -507,7 +508,7 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
         await settings_panel(client, callback_query)
     elif data == "buy_premium":
         buttons = [
-            [InlineKeyboardButton("📸 Send Payment Proof", url="https://t.me/Dark_of_Danger")],
+            [InlineKeyboardButton("📸 Send Payment Proof", url="https://t.me/DmOwner")],
             [InlineKeyboardButton("⬅️ Back to Home", callback_data="start_btn")]
         ]
         await client.edit_message_media(
