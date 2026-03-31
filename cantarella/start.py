@@ -293,7 +293,7 @@ async def send_start(client: Client, message: Message):
         photo_url = response.json()["url"]
     except Exception as e:
         logger.error(f"Failed to fetch image from API: {e}")
-        photo_url = "https://i.postimg.cc/kX9tjGXP/16.png https://i.postimg.cc/cC7txyhz/15.png"
+        photo_url = "https://i.postimg.cc/kX9tjGXP/16.png"
 
     buttons = [
         [
@@ -732,7 +732,7 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
             photo_url = response.json()["url"]
         except Exception as e:
             logger.error(f"Failed to fetch image from API: {e}")
-            photo_url = "https://i.postimg.cc/kX9tjGXP/16.png https://i.postimg.cc/cC7txyhz/15.png"
+            photo_url = "https://i.postimg.cc/cC7txyhz/15.png"
 
         buttons = [
             [
