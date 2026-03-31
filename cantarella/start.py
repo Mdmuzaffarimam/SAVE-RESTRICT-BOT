@@ -104,10 +104,10 @@ class script(object):
 <b>📝 Personalized Captions</b>
 <b>🛂 24/7 Priority Support</b></blockquote>
 
-<blockquote><b>💳 Pricing Options:</b></blockquote>
-• <b>1 Month Plan:</b> ₹50 / $1 (Billed Monthly)
-• <b>3 Month Plan:</b> ₹120 / $2.5 (Save 20%)
-• <b>Lifetime Access:</b> ₹200 / $4 (One-Time Payment)
+<blockquote><b>💳 Pricing Options:</blockquote>
+• 1 Month Plan: ₹60 / $1
+• 3 Month Plan: ₹150 / $2.5 (Save 17%)
+• 6 Month Plan: ₹300 / $4 (🔥 Premium Plan)</b>
 
 <blockquote><b>👇 Secure Payment:</b></blockquote>
 <b>💸 UPI ID:</b> <code>{upi_id}</code>
