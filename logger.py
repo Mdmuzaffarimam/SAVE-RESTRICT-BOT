@@ -1,8 +1,8 @@
 """
 Logging Configuration
 
-Developed by: LastPerson07 × cantarella
-Telegram: @cantarellabots | @THEUPDATEDGUYS
+Developed by: 𝄟͢🦋⃟≛⃝ 𝐃𝐚𝐫𝐤 𝐨𝐟 𝐃𝐚𝐧𝐠𝐞𝐫 𝄟⃝❤ × Mrn Officialx
+Telegram: @Dark_of_Danger | @Mrn_Officialx
 """
 
 import logging
