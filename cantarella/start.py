@@ -85,7 +85,7 @@ class script(object):
     ABOUT_TXT = """<b>ℹ️ About This Bot</b>
 <blockquote><b>╭────[ 🧩 Technical Stack ]────⍟</b>
 <b>├⍟ 🤖 Bot Name : <a href="https://t.me/Save_Restricted_Content_XRBOT">Save Content</a></b>
-<b>├⍟ 👨‍💻 Developer : <a href="https://t.me/Dark_of_Danger">Ⓜ️ark X cantarella</a></b>
+<b>├⍟ 👨‍💻 Developer : <a href="https://t.me/Dark_of_Danger">𝄟͢🦋⃟≛⃝ 𝐃𝐚𝐫𝐤 𝐨𝐟 𝐃𝐚𝐧𝐠𝐞𝐫 𝄟⃝❤</a></b>
 <b>├⍟ 📚 Library : <a href="https://docs.pyrogram.org/">Pyrogram Async</a></b>
 <b>├⍟ 🐍 Language : <a href="https://www.python.org/">Python 3.11+</a></b>
 <b>├⍟ 🗄 Database : <a href="https://www.mongodb.com/">MongoDB Atlas Cluster</a></b>
@@ -144,8 +144,8 @@ Download files up to 4GB and beyond with no limits!
 
 def get_premium_text():
     return script.PREMIUM_TEXT.format(
-        upi_id=UPI_ID if UPI_ID else "Not Set",
-        qr_code=QR_CODE if QR_CODE else "https://graph.org/file/242b7f1b52743938d81f1.jpg",
+        upi_id=UPI_ID if UPI_ID else "Mrn-Officialx@axl",
+        qr_code=QR_CODE if QR_CODE else "http://telegraph.controller.bot/files/6630683090/AgACAgUAAyEFAASAsArgAAI6OWlY44wCc628_-VB5pyXa2eoBb46AAIODGsbcn7BVpErk_QnTevIAQADAgADeQADOAQ",
     )
 
 
