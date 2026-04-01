@@ -459,15 +459,22 @@ async def save(client: Client, message: Message):
         if is_public_link:
             username = datas[3]
             try:
-                await client.copy_message(
-                    chat_id=message.chat.id,
-                    from_chat_id=username,
-                    message_id=msgid,
-                    reply_to_message_id=message.id,
-                )
-                await db.add_traffic(message.from_user.id)
-                await asyncio.sleep(1)
-                continue
+                fetched_msg = await client.get_messages(username, msgid)
+                if fetched_msg and not fetched_msg.empty and fetched_msg.media_group_id:
+                    await handle_public_media_group(client, message, username, fetched_msg)
+                    await db.add_traffic(message.from_user.id)
+                    await asyncio.sleep(1)
+                    continue
+                else:
+                    await client.copy_message(
+                        chat_id=message.chat.id,
+                        from_chat_id=username,
+                        message_id=msgid,
+                        reply_to_message_id=message.id,
+                    )
+                    await db.add_traffic(message.from_user.id)
+                    await asyncio.sleep(1)
+                    continue
             except Exception:
                 pass
 
@@ -522,6 +529,90 @@ async def save(client: Client, message: Message):
         await asyncio.sleep(2)
 
     batch_temp.IS_BATCH[message.from_user.id] = True
+
+
+
+async def handle_public_media_group(client: Client, message: Message, username: str, first_msg: Message):
+    """
+    Public channel ka media group — bot client se hi directly copy karta hai.
+    """
+    media_group_id = first_msg.media_group_id
+
+    smsg = await client.send_message(
+        message.chat.id,
+        '<b>📦 Media Group mila! Saare files copy ho rahe hain...</b>',
+        reply_to_message_id=message.id,
+        parse_mode='html',
+    )
+
+    try:
+        # Aas paas ke messages scan karo same media_group_id ke liye
+        scan_ids = list(range(max(1, first_msg.id - 10), first_msg.id + 11))
+        group_msgs = []
+        try:
+            all_msgs = await client.get_messages(username, scan_ids)
+            for m in all_msgs:
+                if not m.empty and getattr(m, 'media_group_id', None) == media_group_id:
+                    group_msgs.append(m)
+        except Exception:
+            group_msgs = [first_msg]
+
+        if not group_msgs:
+            group_msgs = [first_msg]
+
+        group_msgs.sort(key=lambda x: x.id)
+
+        await smsg.edit(
+            f'<b>📦 {len(group_msgs)} files mili hain. Copy ho rahi hain...</b>',
+            parse_mode='html',
+        )
+
+        # copy_message_group se poora album ek saath copy karo
+        # Telegram 10 per album limit
+        sent_ids = []
+        for i in range(0, len(group_msgs), 10):
+            chunk_ids = [m.id for m in group_msgs[i:i+10]]
+            try:
+                sent = await client.copy_media_group(
+                    chat_id=message.chat.id,
+                    from_chat_id=username,
+                    message_id=chunk_ids[0],
+                )
+                sent_ids.extend([m.id for m in sent])
+                await asyncio.sleep(1)
+            except Exception as e:
+                logger.error(f'Public media group copy failed: {e}')
+                # Fallback: ek ek copy karo
+                for mid in chunk_ids:
+                    try:
+                        m = await client.copy_message(
+                            chat_id=message.chat.id,
+                            from_chat_id=username,
+                            message_id=mid,
+                        )
+                        sent_ids.append(m.id)
+                        await asyncio.sleep(0.5)
+                    except Exception as e2:
+                        logger.error(f'Fallback copy failed for {mid}: {e2}')
+
+        await client.delete_messages(message.chat.id, [smsg.id])
+
+        # Dump channel forward
+        if sent_ids:
+            try:
+                dump_chat = await db.get_dump_channel(message.from_user.id)
+                if dump_chat:
+                    await client.forward_messages(
+                        chat_id=dump_chat,
+                        from_chat_id=message.chat.id,
+                        message_ids=sent_ids,
+                    )
+            except Exception as e:
+                logger.error(f'Dump forward failed: {e}')
+
+    except Exception as e:
+        logger.error(f'handle_public_media_group error: {e}')
+        await smsg.edit(f'❌ Media Group Failed: {e}')
 
 
 async def handle_restricted_content(client: Client, acc, message: Message, chat_target, msgid):
