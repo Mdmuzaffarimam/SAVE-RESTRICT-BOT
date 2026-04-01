@@ -93,10 +93,29 @@ class Database:
         return user.get('is_banned', False)
     # Dump Chat Support
     async def set_dump_chat(self, id, chat_id):
-        await self.col.update_one({'id': int(id)}, {'$set': {'dump_chat': int(chat_id)}})
+        if chat_id is None:
+            await self.col.update_one({'id': int(id)}, {'$unset': {'dump_chat': ""}})
+        else:
+            await self.col.update_one({'id': int(id)}, {'$set': {'dump_chat': str(chat_id)}})
     async def get_dump_chat(self, id):
         user = await self.col.find_one({'id': int(id)})
         return user.get('dump_chat', None)
+    # Aliases used in start.py
+    async def set_dump_channel(self, id, chat_id):
+        await self.set_dump_chat(id, chat_id)
+    async def get_dump_channel(self, id):
+        return await self.get_dump_chat(id)
+    # User State Support (dump channel set karne jaise multi-step flows ke liye)
+    async def set_user_state(self, id, state):
+        if state is None:
+            await self.col.update_one({'id': int(id)}, {'$unset': {'user_state': ""}})
+        else:
+            await self.col.update_one({'id': int(id)}, {'$set': {'user_state': state}})
+    async def get_user_state(self, id):
+        user = await self.col.find_one({'id': int(id)})
+        if not user:
+            return None
+        return user.get('user_state', None)
     # Delete/Replace Words Support
     async def set_delete_words(self, id, words):
         await self.col.update_one({'id': int(id)}, {'$addToSet': {'delete_words': {'$each': words}}})
