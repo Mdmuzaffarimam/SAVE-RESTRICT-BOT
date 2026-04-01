@@ -15,6 +15,9 @@ from pyrogram.types import (
     Message,
     CallbackQuery,
     InputMediaPhoto,
+    InputMediaVideo,
+    InputMediaDocument,
+    InputMediaAudio,
 )
 
 from config import API_ID, API_HASH, ERROR_MESSAGE
@@ -388,9 +391,32 @@ async def settings_panel(client, callback_query):
     )
 
 
-@Client.on_message(filters.text & filters.private & ~filters.regex("^/"))
+@Client.on_message(filters.text & (filters.private | filters.group) & ~filters.regex("^/"))
 async def save(client: Client, message: Message):
     if "https://t.me/" not in message.text:
+        return
+
+    # Ensure user exists in DB (group + private dono ke liye)
+    if not await db.is_user_exist(message.from_user.id):
+        await db.add_user(message.from_user.id, message.from_user.first_name)
+
+    # Check karo kya user dump channel set kar raha hai
+    user_state = await db.get_user_state(message.from_user.id)
+    if user_state == "awaiting_dump_channel":
+        dump_input = message.text.strip()
+        try:
+            chat_info = await client.get_chat(dump_input)
+            await db.set_dump_channel(message.from_user.id, dump_input)
+            await db.set_user_state(message.from_user.id, None)
+            await message.reply_text(
+                f"✅ <b>Dump channel set to:</b> <code>{chat_info.title}</code>",
+                parse_mode=enums.ParseMode.HTML,
+            )
+        except Exception as e:
+            await message.reply_text(
+                f"❌ <b>Invalid channel/group!</b>\n<code>{e}</code>\n\nMake sure bot is admin there.",
+                parse_mode=enums.ParseMode.HTML,
+            )
         return
 
     is_limit_reached = await db.check_limit(message.from_user.id)
@@ -508,6 +534,13 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
     if msg.empty:
         return
 
+    # ─── Media Group Check ───────────────────────────────────────────
+    # Agar message kisi media group ka part hai toh poora group handle karo
+    if msg.media_group_id:
+        await handle_media_group(client, acc, message, chat_target, msg)
+        return
+    # ─────────────────────────────────────────────────────────────────
+
     msg_type = get_message_type(msg)
     if not msg_type:
         return
@@ -618,8 +651,10 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
             if msg.caption:
                 final_caption += f"\n\n{msg.caption}"
 
+        sent_ids = []
+
         if msg_type == "Document":
-            await client.send_document(
+            sent = await client.send_document(
                 message.chat.id,
                 file,
                 thumb=ph_path,
@@ -627,8 +662,9 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress=progress,
                 progress_args=[message, "up"],
             )
+            sent_ids.append(sent.id)
         elif msg_type == "Video":
-            await client.send_video(
+            sent = await client.send_video(
                 message.chat.id,
                 file,
                 duration=msg.video.duration,
@@ -639,8 +675,9 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress=progress,
                 progress_args=[message, "up"],
             )
+            sent_ids.append(sent.id)
         elif msg_type == "Audio":
-            await client.send_audio(
+            sent = await client.send_audio(
                 message.chat.id,
                 file,
                 thumb=ph_path,
@@ -648,15 +685,18 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress=progress,
                 progress_args=[message, "up"],
             )
+            sent_ids.append(sent.id)
         elif msg_type == "Photo":
-            await client.send_photo(
+            sent = await client.send_photo(
                 message.chat.id,
                 file,
                 caption=final_caption,
             )
+            sent_ids.append(sent.id)
 
     except Exception as e:
         await smsg.edit(f"Upload Failed: {e}")
+        sent_ids = []
 
     if os.path.exists(f"{message.id}upstatus.txt"):
         os.remove(f"{message.id}upstatus.txt")
@@ -664,6 +704,183 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
         shutil.rmtree(temp_dir)
 
     await client.delete_messages(message.chat.id, [smsg.id])
+
+    # Dump channel mein forward karo (agar set hai)
+    if sent_ids:
+        try:
+            dump_chat = await db.get_dump_channel(message.from_user.id)
+            if dump_chat:
+                await client.forward_messages(
+                    chat_id=dump_chat,
+                    from_chat_id=message.chat.id,
+                    message_ids=sent_ids,
+                )
+        except Exception as e:
+            logger.error(f"Dump channel forward failed: {e}")
+
+
+async def handle_media_group(client: Client, acc, message: Message, chat_target, first_msg: Message):
+    """
+    Media group ke saare messages fetch karke ek saath send karta hai (album).
+    """
+    media_group_id = first_msg.media_group_id
+
+    smsg = await client.send_message(
+        message.chat.id,
+        "<b>⬇️ Media Group Detect Hua! Saare files download ho rahe hain...</b>",
+        reply_to_message_id=message.id,
+        parse_mode=enums.ParseMode.HTML,
+    )
+
+    temp_dir = f"downloads/{message.id}_mg"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    try:
+        # Pehle 20 messages scan karke same media_group_id wale dhundo
+        group_msgs = []
+        scan_start = max(1, first_msg.id - 10)
+        scan_end = first_msg.id + 10
+
+        try:
+            msgs_range = await acc.get_messages(chat_target, list(range(scan_start, scan_end + 1)))
+            for m in msgs_range:
+                if not m.empty and getattr(m, "media_group_id", None) == media_group_id:
+                    group_msgs.append(m)
+        except Exception:
+            group_msgs = [first_msg]
+
+        if not group_msgs:
+            group_msgs = [first_msg]
+
+        # Sort by message id
+        group_msgs.sort(key=lambda x: x.id)
+
+        await smsg.edit(
+            f"<b>⬇️ {len(group_msgs)} files mila media group mein. Download shuru...</b>",
+            parse_mode=enums.ParseMode.HTML,
+        )
+
+        custom_caption = await db.get_caption(message.from_user.id)
+        media_list = []
+        downloaded_files = []
+
+        for i, mg_msg in enumerate(group_msgs):
+            if batch_temp.IS_BATCH.get(message.from_user.id):
+                break
+
+            mg_type = get_message_type(mg_msg)
+            if mg_type not in ("Photo", "Video", "Document", "Audio"):
+                continue
+
+            try:
+                file = await acc.download_media(
+                    mg_msg,
+                    file_name=f"{temp_dir}/file_{i}_",
+                )
+                downloaded_files.append(file)
+            except Exception as e:
+                logger.error(f"Media group file {i} download failed: {e}")
+                continue
+
+            # Caption sirf pehle item pe lagao
+            if i == 0:
+                if custom_caption:
+                    cap = custom_caption.format(
+                        filename=file.split("/")[-1] if file else "",
+                        size="",
+                    )
+                else:
+                    cap = ""
+                    if mg_msg.caption:
+                        cap = mg_msg.caption
+            else:
+                cap = ""
+
+            # Thumbnail
+            ph_path = None
+            thumb_id = await db.get_thumbnail(message.from_user.id)
+            if thumb_id:
+                try:
+                    ph_path = await client.download_media(
+                        thumb_id,
+                        file_name=f"{temp_dir}/thumb_{i}.jpg"
+                    )
+                except Exception:
+                    pass
+
+            if not ph_path and mg_type == "Video" and mg_msg.video and mg_msg.video.thumbs:
+                try:
+                    ph_path = await acc.download_media(
+                        mg_msg.video.thumbs[0].file_id,
+                        file_name=f"{temp_dir}/vthumb_{i}.jpg"
+                    )
+                except Exception:
+                    pass
+
+            # InputMedia object banao
+            if mg_type == "Photo":
+                media_list.append(InputMediaPhoto(media=file, caption=cap))
+            elif mg_type == "Video":
+                media_list.append(InputMediaVideo(
+                    media=file,
+                    thumb=ph_path,
+                    duration=mg_msg.video.duration if mg_msg.video else None,
+                    width=mg_msg.video.width if mg_msg.video else None,
+                    height=mg_msg.video.height if mg_msg.video else None,
+                    caption=cap,
+                ))
+            elif mg_type == "Document":
+                media_list.append(InputMediaDocument(media=file, thumb=ph_path, caption=cap))
+            elif mg_type == "Audio":
+                media_list.append(InputMediaAudio(media=file, caption=cap))
+
+        if not media_list:
+            await smsg.edit("❌ Koi media download nahi hua.")
+            return
+
+        await smsg.edit(
+            f"<b>⬆️ {len(media_list)} files upload ho rahe hain...</b>",
+            parse_mode=enums.ParseMode.HTML,
+        )
+
+        # Telegram max 10 per album allow karta hai
+        sent_ids = []
+        for i in range(0, len(media_list), 10):
+            chunk = media_list[i:i+10]
+            try:
+                sent_msgs = await client.send_media_group(
+                    chat_id=message.chat.id,
+                    media=chunk,
+                )
+                sent_ids.extend([m.id for m in sent_msgs])
+                await db.add_traffic(message.from_user.id)
+                await asyncio.sleep(1)
+            except Exception as e:
+                logger.error(f"Media group send failed chunk {i}: {e}")
+                await smsg.edit(f"❌ Upload Failed: {e}")
+
+        await client.delete_messages(message.chat.id, [smsg.id])
+
+        # Dump channel forward
+        if sent_ids:
+            try:
+                dump_chat = await db.get_dump_channel(message.from_user.id)
+                if dump_chat:
+                    await client.forward_messages(
+                        chat_id=dump_chat,
+                        from_chat_id=message.chat.id,
+                        message_ids=sent_ids,
+                    )
+            except Exception as e:
+                logger.error(f"Dump channel media group forward failed: {e}")
+
+    except Exception as e:
+        logger.error(f"handle_media_group error: {e}")
+        await smsg.edit(f"❌ Media Group Failed: {e}")
+    finally:
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
 
 
 @Client.on_callback_query()
@@ -766,7 +983,63 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
     elif data == "close_btn":
         await message.delete()
 
-    elif data in ["cmd_list_btn", "user_stats_btn", "dump_chat_btn", "thumb_btn", "caption_btn"]:
+    elif data == "dump_chat_btn":
+        user_id = callback_query.from_user.id
+        dump_chat = await db.get_dump_channel(user_id)
+        status = f"<code>{dump_chat}</code>" if dump_chat else "<i>Not Set</i>"
+
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📥 Set Dump Channel", callback_data="set_dump_channel")],
+            [InlineKeyboardButton("🗑 Remove Dump Channel", callback_data="remove_dump_channel")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="settings_btn")],
+        ])
+        await callback_query.edit_message_caption(
+            caption=(
+                f"<b>🗑 Dump Chat Settings</b>\n\n"
+                f"<b>Current Dump Channel:</b> {status}\n\n"
+                f"<i>Files will be forwarded to this channel/group after saving.\n"
+                f"Send the channel username or ID after clicking Set.</i>"
+            ),
+            reply_markup=buttons,
+            parse_mode=enums.ParseMode.HTML,
+        )
+
+    elif data == "set_dump_channel":
+        user_id = callback_query.from_user.id
+        await callback_query.edit_message_caption(
+            caption=(
+                "<b>📥 Set Dump Channel</b>\n\n"
+                "<i>Send me the channel/group username or ID.\n"
+                "Example: <code>@mychannel</code> or <code>-100123456789</code></i>\n\n"
+                "<b>Note:</b> Make sure the bot is an admin in that channel!"
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="dump_chat_btn")]
+            ]),
+            parse_mode=enums.ParseMode.HTML,
+        )
+        # User ka next message dump channel set karne ke liye use hoga
+        await db.set_user_state(user_id, "awaiting_dump_channel")
+
+    elif data == "remove_dump_channel":
+        user_id = callback_query.from_user.id
+        await db.set_dump_channel(user_id, None)
+        await callback_query.answer("✅ Dump channel removed!", show_alert=True)
+        # Settings panel reload karo
+        await callback_query.edit_message_caption(
+            caption=(
+                "<b>🗑 Dump Chat Settings</b>\n\n"
+                "<b>Current Dump Channel:</b> <i>Not Set</i>\n\n"
+                "<i>Files will be forwarded to this channel/group after saving.</i>"
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📥 Set Dump Channel", callback_data="set_dump_channel")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="settings_btn")],
+            ]),
+            parse_mode=enums.ParseMode.HTML,
+        )
+
+    elif data in ["cmd_list_btn", "user_stats_btn", "thumb_btn", "caption_btn"]:
         pass
 
     await callback_query.answer()
