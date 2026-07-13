@@ -42,7 +42,7 @@ class Bot(Client):
             plugins=dict(root="cantarella"),
             workers=10, 
             sleep_threshold=15,
-            max_concurrent_transmissions=24,
+            max_concurrent_transmissions=32,
             ipv6=False,
             in_memory=False,
         )
