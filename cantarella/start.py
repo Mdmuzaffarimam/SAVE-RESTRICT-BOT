@@ -231,7 +231,7 @@ async def send_start(client: Client, message: Message):
         await message.react(emoji=random.choice(REACTIONS), big=True)
     except:
         pass
-    apis = ["https://api.waifu.pics/sfw/waifu", "https://nekos.life/api/v2/img/waifu"]
+    apis = ["https://api.aniwallpaper.workers.dev/random?type=girl", "https://api.aniwallpaper.workers.dev/random?type=girl"]
     api_url = random.choice(apis)
     try:
         response = requests.get(api_url)
@@ -541,7 +541,7 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
         )
     elif data == "start_btn":
         bot = await client.get_me()
-        apis = ["https://api.waifu.pics/sfw/waifu", "https://nekos.life/api/v2/img/waifu"]
+        apis = ["https://api.aniwallpaper.workers.dev/random?type=girl", "https://api.aniwallpaper.workers.dev/random?type=girl"]
         api_url = random.choice(apis)
         try:
             response = requests.get(api_url)
