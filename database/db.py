@@ -48,6 +48,11 @@ class Database:
         return user.get('caption', None)
     async def del_caption(self, id):
         await self.col.update_one({'id': int(id)}, {'$unset': {'caption': ""}})
+    async def set_caption_style(self, id, style):
+        await self.col.update_one({'id': int(id)}, {'$set': {'caption_style': style}})
+    async def get_caption_style(self, id):
+        user = await self.col.find_one({'id': int(id)})
+        return user.get('caption_style', None) if user else None
     # Thumbnail Support
     async def set_thumbnail(self, id, thumbnail):
         await self.col.update_one({'id': int(id)}, {'$set': {'thumbnail': thumbnail}})
