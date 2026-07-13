@@ -20,13 +20,13 @@ from pyrogram.types import (
 from config import API_ID, API_HASH, ERROR_MESSAGE
 from database.db import db
 from logger import LOGGER
-from cantarella.metadata import extract_metadata, render_caption
+from cantarella.caption import extract_metadata, render_caption
 
 logger = LOGGER(__name__)
 
 SUBSCRIPTION = os.environ.get(
     "SUBSCRIPTION",
-    "https://graph.org/file/242b7f1b52743938d81f1.jpg"
+    "https://files.catbox.moe/vapq9o.jpg"
 )
 FREE_LIMIT_SIZE = 2 * 1024 * 1024 * 1024
 FREE_LIMIT_DAILY = 10
@@ -146,7 +146,7 @@ Download files up to 4GB and beyond with no limits!
 def get_premium_text():
     return script.PREMIUM_TEXT.format(
         upi_id=UPI_ID if UPI_ID else "Mrn-Officialx@axl",
-        qr_code=QR_CODE if QR_CODE else "https://files.catbox.moe/1ulopu.jpg",
+        qr_code=QR_CODE if QR_CODE else "https://files.catbox.moe/x5j7is.jpg",
     )
 
 
@@ -283,8 +283,8 @@ async def send_start(client: Client, message: Message):
         pass
 
     apis = [
-        "https://api.nekosapi.com/v3/images/random",
-        "https://api.waifu.im/search?included_tags=waifu",
+        "https://api.aniwallpaper.workers.dev/random?type=girl",
+        "https://api.aniwallpaper.workers.dev/random?type=girl",
     ]
     api_url = random.choice(apis)
 
@@ -294,7 +294,7 @@ async def send_start(client: Client, message: Message):
         photo_url = response.json()["url"]
     except Exception as e:
         logger.error(f"Failed to fetch image from API: {e}")
-        photo_url = "https://i.postimg.cc/kX9tjGXP/16.png"
+        photo_url = "https://api.aniwallpaper.workers.dev/random?type=girl"
 
     buttons = [
         [
@@ -748,8 +748,8 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
     elif data == "start_btn":
         bot = await client.get_me()
         apis = [
-            "https://api.nekosapi.com/v3/images/random",
-            "https://api.waifu.im/search?included_tags=waifu",
+            "https://api.aniwallpaper.workers.dev/random?type=girl",
+            "https://api.aniwallpaper.workers.dev/random?type=girl",
         ]
         api_url = random.choice(apis)
 
@@ -759,7 +759,7 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
             photo_url = response.json()["url"]
         except Exception as e:
             logger.error(f"Failed to fetch image from API: {e}")
-            photo_url = "https://i.postimg.cc/cC7txyhz/15.png"
+            photo_url = "https://api.aniwallpaper.workers.dev/random?type=girl"
 
         buttons = [
             [
