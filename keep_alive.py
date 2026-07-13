@@ -1,7 +1,7 @@
 """
 ========================================================
-Modified & maintained by: Dhanpal Sharma
-GitHub: https://github.com/LastPerson07
+Modified & maintained by: 𝄟͢🦋⃟≛⃝ 𝐃𝐚𝐫𝐤 𝐨𝐟 𝐃𝐚𝐧𝐠𝐞𝐫 𝄟⃝❤
+Update Channel: https://t.me/Mrn_Officialx
 Purpose: Keep-alive HTTP server for Render / Heroku
 ========================================================
 """
