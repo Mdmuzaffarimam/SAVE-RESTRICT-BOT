@@ -294,7 +294,7 @@ async def send_start(client: Client, message: Message):
         photo_url = response.json()["url"]
     except Exception as e:
         logger.error(f"Failed to fetch image from API: {e}")
-        photo_url = "https://api.aniwallpaper.workers.dev/random?type=girl"
+        photo_url = "https://files.catbox.moe/yhzga3.jpg"
 
     buttons = [
         [
@@ -465,7 +465,7 @@ async def save(client: Client, message: Message):
                 api_hash=API_HASH,
                 api_id=API_ID,
                 in_memory=True,
-                max_concurrent_transmissions=24,
+                max_concurrent_transmissions=32,
             )
             await acc.connect()
         except Exception as e:
@@ -759,7 +759,7 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
             photo_url = response.json()["url"]
         except Exception as e:
             logger.error(f"Failed to fetch image from API: {e}")
-            photo_url = "https://api.aniwallpaper.workers.dev/random?type=girl"
+            photo_url = "https://files.catbox.moe/yhzga3.jpg"
 
         buttons = [
             [
