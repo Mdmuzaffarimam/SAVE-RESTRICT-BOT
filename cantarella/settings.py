@@ -3,6 +3,7 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from database.db import db
 from cantarella.strings import COMMANDS_TXT
+from cantarella.caption_ui import show_caption_menu
 # ======================================================
 # /settings - Enhanced Professional Settings Menu
 # ======================================================
@@ -142,23 +143,7 @@ async def settings_callbacks(client: Client, callback_query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             )
     elif data == "caption_btn":
-        caption = await db.get_caption(user_id)
-        if caption:
-            preview = caption.format(filename="Video_File_2024.mp4", size="1.2 GB")
-            text = (
-                f"<b>📝 Current Custom Caption</b>\n\n"
-                f"<code>{caption}</code>\n\n"
-                f"<b>Preview:</b>\n{preview}\n\n"
-                "<i>Placeholders: {filename}, {size}</i>\n"
-                "<i>/set_caption &lt;text&gt; to change • /del_caption to remove</i>"
-            )
-        else:
-            text = (
-                "<b>📝 No Custom Caption Set</b>\n\n"
-                "<i>Use /set_caption &lt;text&gt; to set one.</i>\n"
-                "<i>Supports {filename} and {size} placeholders.</i>"
-            )
-        await callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(back_close), parse_mode=enums.ParseMode.HTML)
+        await show_caption_menu(callback_query)
     elif data == "user_stats_btn":
         # Fetch real stats from DB
         is_premium = await db.check_premium(user_id)

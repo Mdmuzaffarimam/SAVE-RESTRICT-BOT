@@ -87,31 +87,32 @@ async def logout(client: Client, message: Message):
         parse_mode=enums.ParseMode.HTML
     )
 
-@Client.on_message(filters.private & filters.command(["cancel", "cancellogin"]))
-async def cancel_login(client: Client, message: Message):
-    user_id = message.from_user.id
-   
-    if user_id in LOGIN_STATE:
-        state = LOGIN_STATE[user_id]
-       
-        if "data" in state and "client" in state["data"]:
-            try:
-                await state["data"]["client"].disconnect()
-            except:
-                pass
-       
-        del LOGIN_STATE[user_id]
-        await message.reply(
-            "<b>❌ Login process cancelled. 😌</b>",
-            parse_mode=enums.ParseMode.HTML,
-            reply_markup=remove_keyboard
-        )
-    else:
-        pass
-
 async def check_login_state(_, __, message):
     return message.from_user.id in LOGIN_STATE
 login_state_filter = filters.create(check_login_state)
+
+# Only intercept /cancel when the user is actually in the middle of a login
+# flow. Previously this handler swallowed /cancel silently (else: pass) for
+# everyone else, so start.py's batch/download cancel handler never got a
+# chance to run (plugins load alphabetically and session.py loads before
+# start.py, so this handler always matched first).
+@Client.on_message(filters.private & login_state_filter & filters.command(["cancel", "cancellogin"]))
+async def cancel_login(client: Client, message: Message):
+    user_id = message.from_user.id
+    state = LOGIN_STATE[user_id]
+
+    if "data" in state and "client" in state["data"]:
+        try:
+            await state["data"]["client"].disconnect()
+        except:
+            pass
+
+    del LOGIN_STATE[user_id]
+    await message.reply(
+        "<b>❌ Login process cancelled. 😌</b>",
+        parse_mode=enums.ParseMode.HTML,
+        reply_markup=remove_keyboard
+    )
 
 @Client.on_message(filters.private & filters.text & login_state_filter & ~filters.command(["cancel", "cancellogin"]))
 async def login_handler(bot: Client, message: Message):
