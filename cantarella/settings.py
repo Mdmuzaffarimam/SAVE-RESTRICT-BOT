@@ -3,7 +3,7 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from database.db import db
 from cantarella.strings import COMMANDS_TXT
-from cantarella.caption_ui import show_caption_menu
+from cantarella.caption import show_caption_menu
 # ======================================================
 # /settings - Enhanced Professional Settings Menu
 # ======================================================
