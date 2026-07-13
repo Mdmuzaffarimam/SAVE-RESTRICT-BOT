@@ -80,10 +80,28 @@ class Database:
         await self.col.update_one({'id': int(id)}, {'$set': {'is_premium': False, 'premium_expiry': None}})
         logger.info(f"User {id} removed from premium")
     async def check_premium(self, id):
+        """Returns True if the user currently has active premium, else False."""
         user = await self.col.find_one({'id': int(id)})
-        if user and user.get('is_premium'):
-            return user.get('premium_expiry')
-        return None
+        if not user or not user.get('is_premium'):
+            return False
+
+        expiry = user.get('premium_expiry')
+        if not expiry:
+            # No expiry date set = permanent/lifetime premium
+            return True
+
+        try:
+            expiry_date = datetime.date.fromisoformat(str(expiry))
+        except (ValueError, TypeError):
+            # Unparseable expiry, don't lock the user out over a data issue
+            return True
+
+        if datetime.date.today() > expiry_date:
+            # Premium expired, auto-downgrade
+            await self.col.update_one({'id': int(id)}, {'$set': {'is_premium': False}})
+            return False
+
+        return True
     async def get_premium_users(self):
         return self.col.find({'is_premium': True})
     # Ban Support
@@ -98,7 +116,10 @@ class Database:
         return user.get('is_banned', False)
     # Dump Chat Support
     async def set_dump_chat(self, id, chat_id):
-        await self.col.update_one({'id': int(id)}, {'$set': {'dump_chat': int(chat_id)}})
+        if chat_id is None:
+            await self.col.update_one({'id': int(id)}, {'$unset': {'dump_chat': ""}})
+        else:
+            await self.col.update_one({'id': int(id)}, {'$set': {'dump_chat': int(chat_id)}})
     async def get_dump_chat(self, id):
         user = await self.col.find_one({'id': int(id)})
         return user.get('dump_chat', None)
