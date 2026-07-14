@@ -391,7 +391,11 @@ async def settings_panel(client, callback_query):
 
 @Client.on_message(filters.text & filters.private & ~filters.regex("^/"))
 async def save(client: Client, message: Message):
-    if "https://t.me/" not in message.text:
+    # Telegram treats t.me and telegram.me as equivalent short-link domains,
+    # but this used to only recognize "t.me" — links from clients that
+    # generate telegram.me URLs (e.g. some Telegram X / web clients) were
+    # silently ignored (no reply at all).
+    if "t.me/" not in message.text and "telegram.me/" not in message.text:
         return
 
     is_limit_reached = await db.check_limit(message.from_user.id)
@@ -423,8 +427,8 @@ async def save(client: Client, message: Message):
         toID = fromID
 
     batch_temp.IS_BATCH[message.from_user.id] = False
-    is_private_link = "https://t.me/c/" in message.text
-    is_batch = "https://t.me/b/" in message.text
+    is_private_link = "t.me/c/" in message.text or "telegram.me/c/" in message.text
+    is_batch = "t.me/b/" in message.text or "telegram.me/b/" in message.text
     is_public_link = not is_private_link and not is_batch
 
     for msgid in range(fromID, toID + 1):
@@ -629,10 +633,26 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 final_caption += f"\n\n{msg.caption}"
 
         sent_msg = None
+        # Telegram hard-caps *bot* accounts at 2GB uploads no matter what —
+        # only real Telegram Premium *user* accounts can push up to 4GB.
+        # So for big files we must upload via the user's own logged-in
+        # session (acc), not the bot (client). That lands in their own
+        # Saved Messages, since acc sending to itself goes there.
+        big_file = file_size > (2 * 1024 * 1024 * 1024)
+        uploader = acc if big_file else client
+        target_chat = "me" if big_file else message.chat.id
+
+        if big_file:
+            await smsg.edit(
+                "<b>📦 File is over 2GB.</b>\n"
+                "Bot accounts can't send files this large (Telegram limit), "
+                "so it's being uploaded via your own account and will land "
+                "in your <b>Saved Messages</b>."
+            )
 
         if msg_type == "Document":
-            sent_msg = await client.send_document(
-                message.chat.id,
+            sent_msg = await uploader.send_document(
+                target_chat,
                 file,
                 thumb=ph_path,
                 caption=final_caption,
@@ -640,8 +660,8 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress_args=[message, "up"],
             )
         elif msg_type == "Video":
-            sent_msg = await client.send_video(
-                message.chat.id,
+            sent_msg = await uploader.send_video(
+                target_chat,
                 file,
                 duration=msg.video.duration,
                 width=msg.video.width,
@@ -652,8 +672,8 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress_args=[message, "up"],
             )
         elif msg_type == "Audio":
-            sent_msg = await client.send_audio(
-                message.chat.id,
+            sent_msg = await uploader.send_audio(
+                target_chat,
                 file,
                 thumb=ph_path,
                 caption=final_caption,
@@ -661,8 +681,8 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress_args=[message, "up"],
             )
         elif msg_type == "Photo":
-            sent_msg = await client.send_photo(
-                message.chat.id,
+            sent_msg = await uploader.send_photo(
+                target_chat,
                 file,
                 caption=final_caption,
             )
@@ -674,13 +694,21 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
             try:
                 dump_chat = await db.get_dump_chat(message.from_user.id)
                 if dump_chat:
-                    await client.copy_message(
+                    await uploader.copy_message(
                         dump_chat,
-                        message.chat.id,
+                        target_chat,
                         sent_msg.id,
                     )
             except Exception as e:
                 logger.error(f"Failed to forward to dump chat: {e}")
+
+        if big_file:
+            await client.send_message(
+                message.chat.id,
+                "<b>✅ Done!</b> Check your <b>Saved Messages</b> — the file was too "
+                "large for the bot to send directly.",
+                parse_mode=enums.ParseMode.HTML,
+            )
 
     except Exception as e:
         await smsg.edit(f"Upload Failed: {e}")
