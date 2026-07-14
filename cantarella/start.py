@@ -465,7 +465,7 @@ async def save(client: Client, message: Message):
                 api_hash=API_HASH,
                 api_id=API_ID,
                 in_memory=True,
-                max_concurrent_transmissions=32,
+                max_concurrent_transmissions=40,
             )
             await acc.connect()
         except Exception as e:
