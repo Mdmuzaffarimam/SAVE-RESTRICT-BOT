@@ -283,8 +283,8 @@ async def send_start(client: Client, message: Message):
         pass
 
     apis = [
-        "https://api.aniwallpaper.workers.dev/random?type=girl",
-        "https://api.aniwallpaper.workers.dev/random?type=girl",
+        "https://api.nekosapi.com/v3/images/random",
+        "https://api.waifu.im/search?included_tags=waifu",
     ]
     api_url = random.choice(apis)
 
@@ -465,7 +465,7 @@ async def save(client: Client, message: Message):
                 api_hash=API_HASH,
                 api_id=API_ID,
                 in_memory=True,
-                max_concurrent_transmissions=32,
+                max_concurrent_transmissions=40,
             )
             await acc.connect()
         except Exception as e:
@@ -629,10 +629,26 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 final_caption += f"\n\n{msg.caption}"
 
         sent_msg = None
+        # Telegram hard-caps *bot* accounts at 2GB uploads no matter what —
+        # only real Telegram Premium *user* accounts can push up to 4GB.
+        # So for big files we must upload via the user's own logged-in
+        # session (acc), not the bot (client). That lands in their own
+        # Saved Messages, since acc sending to itself goes there.
+        big_file = file_size > (2 * 1024 * 1024 * 1024)
+        uploader = acc if big_file else client
+        target_chat = "me" if big_file else message.chat.id
+
+        if big_file:
+            await smsg.edit(
+                "<b>📦 File is over 2GB.</b>\n"
+                "Bot accounts can't send files this large (Telegram limit), "
+                "so it's being uploaded via your own account and will land "
+                "in your <b>Saved Messages</b>."
+            )
 
         if msg_type == "Document":
-            sent_msg = await client.send_document(
-                message.chat.id,
+            sent_msg = await uploader.send_document(
+                target_chat,
                 file,
                 thumb=ph_path,
                 caption=final_caption,
@@ -640,8 +656,8 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress_args=[message, "up"],
             )
         elif msg_type == "Video":
-            sent_msg = await client.send_video(
-                message.chat.id,
+            sent_msg = await uploader.send_video(
+                target_chat,
                 file,
                 duration=msg.video.duration,
                 width=msg.video.width,
@@ -652,8 +668,8 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress_args=[message, "up"],
             )
         elif msg_type == "Audio":
-            sent_msg = await client.send_audio(
-                message.chat.id,
+            sent_msg = await uploader.send_audio(
+                target_chat,
                 file,
                 thumb=ph_path,
                 caption=final_caption,
@@ -661,8 +677,8 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
                 progress_args=[message, "up"],
             )
         elif msg_type == "Photo":
-            sent_msg = await client.send_photo(
-                message.chat.id,
+            sent_msg = await uploader.send_photo(
+                target_chat,
                 file,
                 caption=final_caption,
             )
@@ -674,13 +690,21 @@ async def handle_restricted_content(client: Client, acc, message: Message, chat_
             try:
                 dump_chat = await db.get_dump_chat(message.from_user.id)
                 if dump_chat:
-                    await client.copy_message(
+                    await uploader.copy_message(
                         dump_chat,
-                        message.chat.id,
+                        target_chat,
                         sent_msg.id,
                     )
             except Exception as e:
                 logger.error(f"Failed to forward to dump chat: {e}")
+
+        if big_file:
+            await client.send_message(
+                message.chat.id,
+                "<b>✅ Done!</b> Check your <b>Saved Messages</b> — the file was too "
+                "large for the bot to send directly.",
+                parse_mode=enums.ParseMode.HTML,
+            )
 
     except Exception as e:
         await smsg.edit(f"Upload Failed: {e}")
@@ -748,8 +772,8 @@ async def button_callbacks(client: Client, callback_query: CallbackQuery):
     elif data == "start_btn":
         bot = await client.get_me()
         apis = [
-            "https://api.aniwallpaper.workers.dev/random?type=girl",
-            "https://api.aniwallpaper.workers.dev/random?type=girl",
+            "https://api.nekosapi.com/v3/images/random",
+            "https://api.waifu.im/search?included_tags=waifu",
         ]
         api_url = random.choice(apis)
 
